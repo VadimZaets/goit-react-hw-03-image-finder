@@ -6,4 +6,4 @@ function fetchImage(query = "", pageNumber = 1) {
     .then((data) => data.hits);
 }
 
-export default { fetchImage };
+export { fetchImage };

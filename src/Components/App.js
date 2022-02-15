@@ -1,80 +1,64 @@
-import { Component } from "react";
+import { useState, useEffect } from "react";
 import Searchbar from "./Searchbar/Searchbar";
 import { ToastContainer } from "react-toastify";
 import ImageGallery from "./ImageGallery/ImageGallery";
-import Api from "./Api/Api";
+import { fetchImage } from "./Api/Api";
 import Button from "./Button/Button";
 import Modal from "./Modal/Modal";
 
 import Loader from "./Modal/Modal";
 
-export default class App extends Component {
-  state = {
-    images: [],
-    pageNumber: 1,
-    search: "",
-    error: "",
-    isLoading: false,
-    showModal: false,
-    largeImageId: null,
-    largeImage: "",
-  };
+export default function App() {
+  const [images, setImages] = useState([]);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [search, setSearch] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [largeImageId, setLargeImageId] = useState(null);
+  const [largeImage, setLargeImage] = useState("");
 
-  onSearch = (search) => {
-    this.setState({ search, images: [], pageNumber: 1 });
+  const onSearch = (search) => {
+    setSearch(search);
+    setImages([]);
+    setPageNumber(1);
   };
-
-  componentDidUpdate(prevProps, prevState) {
-    if (this.state.search !== prevState.search) {
-      this.fetchImage(false);
+  useEffect(() => {
+    if (search === "") {
+      return;
     }
-  }
-  fetchImageMore = () => {
-    this.fetchImage(true);
-  };
-  fetchImage = () => {
-    const { search, pageNumber } = this.state;
-    Api.fetchImage(search, pageNumber)
-      .then((images) => {
-        this.setState((state) => ({
-          images: [...state.images, ...images],
-          pageNumber: state.pageNumber + 1,
-        }));
-        return images[0];
-      })
-      .catch((error) => {
-        this.setState({ error });
-      });
+
+    fetchImage(search, pageNumber)
+      .then((data) => setImages((prev) => [...prev, ...data]))
+      .catch((error) => setError(error));
+  }, [search, pageNumber]);
+
+  const fetchImageMore = () => {
+    setPageNumber((prev) => prev + 1);
   };
 
-  handleGalleryItem = (largeImageURL) => {
-    this.setState({
-      largeImage: largeImageURL,
-      showModal: true,
-    });
-  };
-  toggleModal = () => {
-    this.setState((prevState) => ({
-      showModal: !prevState.showModal,
-      largeImage: "",
-    }));
+  const handleGalleryItem = (largeImageURL) => {
+    setLargeImage(largeImageURL);
+    setShowModal(true);
   };
 
-  render() {
-    const { isLoading, images, showModal, largeImage } = this.state;
-    return (
-      <div>
-        <ToastContainer />
-        <Searchbar onSubmit={this.onSearch} />
-        <ImageGallery images={images} onImageClick={this.handleGalleryItem} />
-        {isLoading && <Loader />}
-        {images.length > 0 && <Button fetchImages={this.fetchImageMore} />}
-        {showModal && (
-          <Modal onClose={this.toggleModal}>
-            <img src={largeImage} alt="" width="800x" height="600px" />
-          </Modal>
-        )}
-      </div>
-    );
-  }
+  const toggleModal = () => {
+    setShowModal((prev) => !prev);
+    setLargeImage("");
+  };
+
+  return (
+    <div>
+      <ToastContainer />
+      <Searchbar onSubmit={onSearch} />
+      <ImageGallery images={images} onImageClick={handleGalleryItem} />
+      {isLoading && <Loader />}
+      {images.length > 0 && <Button fetchImages={fetchImageMore} />}
+      {showModal && (
+        <Modal onClose={toggleModal}>
+          <img src={largeImage} alt="" width="800x" height="600px" />
+        </Modal>
+      )}
+    </div>
+  );
 }
